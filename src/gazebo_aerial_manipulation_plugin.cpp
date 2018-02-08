@@ -11,7 +11,7 @@
 
 namespace gazebo
 {
-GZ_REGISTER_MODEL_PLUGIN(GazeboAerialManipulation);
+GZ_REGISTER_MODEL_PLUGIN(GazeboAerialManipulation)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constructor
