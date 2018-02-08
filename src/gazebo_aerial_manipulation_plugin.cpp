@@ -133,7 +133,7 @@ void GazeboAerialManipulation::UpdateObjectForce(const geometry_msgs::Wrench::Co
 
 ////////////////////////////////////////////////////////////////////////////////
 // reset the model
-void GazeboAerialManipulation::reset(const std_mgs::Empty::ConstPtr&) {
+void GazeboAerialManipulation::reset(const std_msgs::Empty::ConstPtr&) {
   if(this->model_) {
     this->model_->Reset();
   }
@@ -143,17 +143,18 @@ void GazeboAerialManipulation::reset(const std_mgs::Empty::ConstPtr&) {
 // set the model pose
 void GazeboAerialManipulation::setModelPose(const geometry_msgs::Pose::ConstPtr& _pose) {
   if(this->world_) {
-    this->world_->setPaused(true);
+    this->world_->SetPaused(true);
+    gazebo::math::Vector3 target_pos(_pose->position.x,_pose->position.y,_pose->position.z);
+    gazebo::math::Quaternion target_rot(_pose->orientation.w, _pose->orientation.x, _pose->orientation.y, _pose->orientation.z);
+    target_rot.Normalize(); // eliminates invalid rotation (0, 0, 0, 0)
+    if(this->model_) {
+      this->model_->SetWorldPose(gazebo::math::Pose(target_pos, target_rot));
+    } else {
+      ROS_WARN("GazeboAerialManipulation: Model not available to set model pose");
+    }
+    this->world_->SetPaused(false);
   } else {
     ROS_WARN("GazeboAerialManipulation: World not available to set model pose");
-  }
-  gazebo::math::Vector3 target_pos(_pose->position.x,_pose->position.y,_pose->position.z);
-  gazebo::math::Quaternion target_rot(_pose->orientation.w, _pose->orientation.x, _pose->orientation.y, _pose->orientation.z);
-  target_rot.Normalize(); // eliminates invalid rotation (0, 0, 0, 0)
-  if(this->model_) {
-    this->model_->setWorldPose(gazebo::math::Pose(target_pos, target_rot));
-  } else {
-    ROS_WARN("GazeboAerialManipulation: Model not available to set model pose");
   }
 }
 

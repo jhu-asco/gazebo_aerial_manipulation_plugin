@@ -76,7 +76,7 @@ class GazeboAerialManipulation : public ModelPlugin
 
   /// \brief set the pose of the model wrt world
   /// \param[in] _pose The Incoming ROS message representing the target pose for model
-  private: void setModelPose(const std_msgs::Empty::ConstPtr& _pose);
+  private: void setModelPose(const geometry_msgs::Pose::ConstPtr& _pose);
 
   /// \brief The custom callback queue thread function.
   private: void QueueThread();
@@ -85,7 +85,7 @@ class GazeboAerialManipulation : public ModelPlugin
   private: physics::WorldPtr world_;
 
   /// \brief A pointer to the gazebo model.
-  private: physics::WorldPtr model_;
+  private: physics::ModelPtr model_;
 
   /// \brief A pointer to the Link, where force is applied
   private: physics::LinkPtr link_;

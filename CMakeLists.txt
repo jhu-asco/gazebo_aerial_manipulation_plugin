@@ -9,6 +9,7 @@ project(gazebo_aerial_manipulation_plugin)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   gazebo_dev
+  std_msgs
   geometry_msgs
   roscpp
   sensor_msgs
