@@ -47,6 +47,9 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
   // Get the world name.
   this->world_ = _model->GetWorld();
 
+  // Store the model pointer
+  this->model_ = _model;
+
   // load parameters
   this->robot_namespace_ = "";
   if (_sdf->HasElement("robotNamespace"))
@@ -67,15 +70,6 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
     return;
   }
 
-  if (!_sdf->HasElement("topicName"))
-  {
-    ROS_FATAL_NAMED("force", "force plugin missing <topicName>, cannot proceed");
-    return;
-  }
-  else
-    this->topic_name_ = _sdf->GetElement("topicName")->Get<std::string>();
-
-
   /**
   * If ros has not been initialized start ros. Is not compatible with ros api plugin
   * TODO Add a stupid world plugin that only initializes ros and nothing else
@@ -95,13 +89,25 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
   */
 
   this->rosnode_ = new ros::NodeHandle(this->robot_namespace_);
-
+  // Can use model name here - _model->GetName()
   // Custom Callback Queue
   ros::SubscribeOptions so = ros::SubscribeOptions::create<geometry_msgs::Wrench>(
-    this->topic_name_,1,
+    "base_wrench",1,
     boost::bind( &GazeboAerialManipulation::UpdateObjectForce,this,_1),
     ros::VoidPtr(), &this->queue_);
-  this->sub_ = this->rosnode_->subscribe(so);
+  this->wrench_sub_ = this->rosnode_->subscribe(so);
+
+  ros::SubscribeOptions reset_so = ros::SubscribeOptions::create<std_msgs::Empty>(
+    "model_reset",1,
+    boost::bind( &GazeboAerialManipulation::reset,this,_1),
+    ros::VoidPtr(), &this->queue_);
+  this->reset_sub_ = this->rosnode_->subscribe(reset_so);
+
+  ros::SubscribeOptions model_pose_so = ros::SubscribeOptions::create<geometry_msgs::Pose>(
+    "set_model_pose",1,
+    boost::bind( &GazeboAerialManipulation::setModelPose,this,_1),
+    ros::VoidPtr(), &this->queue_);
+  this->model_pose_sub_ = this->rosnode_->subscribe(model_pose_so);
 
   // Custom Callback Queue
   this->callback_queue_thread_ = boost::thread( boost::bind( &GazeboAerialManipulation::QueueThread,this ) );
@@ -123,6 +129,32 @@ void GazeboAerialManipulation::UpdateObjectForce(const geometry_msgs::Wrench::Co
   this->wrench_msg_.torque.x = _msg->torque.x;
   this->wrench_msg_.torque.y = _msg->torque.y;
   this->wrench_msg_.torque.z = _msg->torque.z;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// reset the model
+void GazeboAerialManipulation::reset(const std_mgs::Empty::ConstPtr&) {
+  if(this->model_) {
+    this->model_->Reset();
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// set the model pose
+void GazeboAerialManipulation::setModelPose(const geometry_msgs::Pose::ConstPtr& _pose) {
+  if(this->world_) {
+    this->world_->setPaused(true);
+  } else {
+    ROS_WARN("GazeboAerialManipulation: World not available to set model pose");
+  }
+  gazebo::math::Vector3 target_pos(_pose->position.x,_pose->position.y,_pose->position.z);
+  gazebo::math::Quaternion target_rot(_pose->orientation.w, _pose->orientation.x, _pose->orientation.y, _pose->orientation.z);
+  target_rot.Normalize(); // eliminates invalid rotation (0, 0, 0, 0)
+  if(this->model_) {
+    this->model_->setWorldPose(gazebo::math::Pose(target_pos, target_rot));
+  } else {
+    ROS_WARN("GazeboAerialManipulation: Model not available to set model pose");
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
