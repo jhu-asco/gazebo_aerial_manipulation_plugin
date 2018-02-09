@@ -1,5 +1,6 @@
 #pragma once
 #include <gazebo/common/common.hh>
+#include <gazebo_aerial_manipulation_plugin/atomic.h>
 
 /**
  * @brief achieves roll, pitch, yawrate, thrust commanded using PID controllers
@@ -16,7 +17,7 @@ private:
   GazeboVector i_gains_;
   GazeboVector d_gains_;
   GazeboVector rpy_command_prev_;
-  GazeboVector i_error_;
+  Atomic<GazeboVector> i_error_;
   GazeboVector prev_body_torque_;
   bool invalid_prev_command_;
   GazeboVector clampVector(GazeboVector vector, double ub, double lb) {

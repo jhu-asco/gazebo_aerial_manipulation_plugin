@@ -12,11 +12,11 @@
 #include <ros/callback_queue.h>
 #include <ros/subscribe_options.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Empty.h>
 
 #include <ros/ros.h>
 #include <boost/thread.hpp>
-#include <boost/thread/mutex.hpp>
 
 #include <gazebo/physics/physics.hh>
 #include <gazebo/transport/TransportTypes.hh>
@@ -25,6 +25,7 @@
 
 #include <gazebo_aerial_manipulation_plugin/RollPitchYawThrust.h>
 #include <gazebo_aerial_manipulation_plugin/rpycontroller.h>
+#include <gazebo_aerial_manipulation_plugin/atomic.h>
 
 
 namespace gazebo
@@ -83,6 +84,9 @@ class GazeboAerialManipulation : public ModelPlugin
   /// \brief The custom callback queue thread function.
   private: void QueueThread();
 
+  /// \briedf The thread function to publish pose
+  private: void publishPoseThread();
+
   /// \brief A pointer to the gazebo world.
   private: physics::WorldPtr world_;
 
@@ -98,8 +102,7 @@ class GazeboAerialManipulation : public ModelPlugin
   private: ros::Subscriber reset_sub_;
   private: ros::Subscriber model_pose_sub_;
 
-  /// \brief A mutex to lock access to fields that are used in ROS message callbacks
-  private: boost::mutex lock_;
+  private: ros::Publisher pose_pub_;
 
   /// \brief The Link this plugin is attached to, and will exert forces on.
   private: std::string link_name_;
@@ -111,8 +114,10 @@ class GazeboAerialManipulation : public ModelPlugin
   private: ros::CallbackQueue queue_;
   /// \brief Thead object for the running callback Thread.
   private: boost::thread callback_queue_thread_;
+  /// \brief Thread object for publishing pose
+  private: boost::thread publish_pose_thread_;
   /// \brief Container for the wrench force that this plugin exerts on the body.
-  private: gazebo_aerial_manipulation_plugin::RollPitchYawThrust rpyt_msg_;
+  private: Atomic<gazebo_aerial_manipulation_plugin::RollPitchYawThrust> rpyt_msg_;
 
   // Pointer to the update event connection
   private: event::ConnectionPtr update_connection_;
@@ -123,9 +128,18 @@ class GazeboAerialManipulation : public ModelPlugin
     math::Vector3 d_gains_;
     double kt_;
     double max_torque_;
+    Atomic<int> pose_subscriber_count_;
 
   /// \brief computes body torques based on rpy commands
   private: RpyController rpy_controller_;
+  private: geometry_msgs::PoseStamped current_pose_;
+  private:
+    void poseConnect() {
+      pose_subscriber_count_.set(pose_subscriber_count_.get() + 1);
+    }
+    void poseDisconnect() {
+      pose_subscriber_count_.set(pose_subscriber_count_.get() - 1);
+    }
 };
 /** \} */
 /// @}

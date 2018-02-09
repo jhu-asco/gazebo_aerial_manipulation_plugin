@@ -20,12 +20,15 @@ GazeboAerialManipulation::GazeboAerialManipulation() : p_gains_(5,5,5)
 , d_gains_(5,5,5)
 , kt_(0.16)
 , max_torque_(10)
+, pose_subscriber_count_(0)
 , rpy_controller_(p_gains_, i_gains_, d_gains_, max_torque_)
 {
-  this->rpyt_msg_.roll = 0;
-  this->rpyt_msg_.pitch = 0;
-  this->rpyt_msg_.yaw = 0;
-  this->rpyt_msg_.thrust = 0;
+  gazebo_aerial_manipulation_plugin::RollPitchYawThrust rpyt_msg;
+  rpyt_msg.roll = 0;
+  rpyt_msg.pitch = 0;
+  rpyt_msg.yaw = 0;
+  rpyt_msg.thrust = 0;
+  this->rpyt_msg_ = rpyt_msg;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -39,6 +42,7 @@ GazeboAerialManipulation::~GazeboAerialManipulation()
   this->queue_.disable();
   this->rosnode_->shutdown();
   this->callback_queue_thread_.join();
+  this->publish_pose_thread_.join();
 
   delete this->rosnode_;
 }
@@ -112,8 +116,18 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
     ros::VoidPtr(), &this->queue_);
   this->model_pose_sub_ = this->rosnode_->subscribe(model_pose_so);
 
+  ros::AdvertiseOptions ao = ros::AdvertiseOptions::create<geometry_msgs::PoseStamped>(
+      "base_pose",1,
+      boost::bind( &GazeboAerialManipulation::poseConnect,this),
+      boost::bind( &GazeboAerialManipulation::poseDisconnect,this), ros::VoidPtr(), &this->queue_);
+  this->pose_pub_ = this->rosnode_->advertise(ao);
+
+
   // Custom Callback Queue
   this->callback_queue_thread_ = boost::thread( boost::bind( &GazeboAerialManipulation::QueueThread,this ) );
+
+  // Publish pose thread
+  this->publish_pose_thread_ = boost::thread( boost::bind( &GazeboAerialManipulation::publishPoseThread,this ) );
 
   // New Mechanism for Updating every World Cycle
   // Listen to the update event. This event is broadcast every
@@ -135,7 +149,12 @@ void GazeboAerialManipulation::reset(const std_msgs::Empty::ConstPtr&) {
   if(this->model_) {
     this->model_->Reset();
     rpy_controller_.reset();
-    this->rpyt_msg_.roll = this->rpyt_msg_.pitch = this->rpyt_msg_.yaw = this->rpyt_msg_.thrust = 0;
+    gazebo_aerial_manipulation_plugin::RollPitchYawThrust rpyt_msg;
+    rpyt_msg.roll = 0;
+    rpyt_msg.pitch = 0;
+    rpyt_msg.yaw = 0;
+    rpyt_msg.thrust = 0;
+    this->rpyt_msg_ = rpyt_msg;
   }
 }
 
@@ -162,18 +181,27 @@ void GazeboAerialManipulation::setModelPose(const geometry_msgs::Pose::ConstPtr&
 // Update the controller
 void GazeboAerialManipulation::UpdateChild()
 {
-  this->lock_.lock();
-  math::Vector3 rpy_command(rpyt_msg_.roll, rpyt_msg_.pitch, rpyt_msg_.yaw);
   math::Pose current_pose = this->link_->GetWorldPose();
   math::Vector3 omega_i = this->link_->GetWorldAngularVel();
+  auto rpyt_msg = rpyt_msg_.get();
+  math::Vector3 rpy_command(rpyt_msg.roll, rpyt_msg.pitch, rpyt_msg.yaw);
+  math::Vector3 body_force(0, 0, kt_*rpyt_msg.thrust);
+  if(pose_subscriber_count_.get() > 0) {
+    current_pose_.header.stamp = ros::Time::now();
+    current_pose_.pose.position.x = current_pose.pos.x;
+    current_pose_.pose.position.y = current_pose.pos.y;
+    current_pose_.pose.position.z = current_pose.pos.z;
+    current_pose_.pose.orientation.x = current_pose.rot.x;
+    current_pose_.pose.orientation.y = current_pose.rot.y;
+    current_pose_.pose.orientation.z = current_pose.rot.z;
+    current_pose_.pose.orientation.w = current_pose.rot.w;
+  }
   math::Vector3 omega_b = current_pose.rot.RotateVectorReverse(omega_i);
   math::Vector3 body_torque = rpy_controller_.update(rpy_command, current_pose.rot, omega_b, this->world_->GetSimTime());
-  math::Vector3 body_force(0, 0, kt_*rpyt_msg_.thrust);
   math::Vector3 force = current_pose.rot.RotateVector(body_force);
   math::Vector3 torque = current_pose.rot.RotateVector(body_torque);
   this->link_->AddForce(force);
   this->link_->AddTorque(torque);
-  this->lock_.unlock();
 }
 
 // Custom Callback Queue
@@ -186,6 +214,16 @@ void GazeboAerialManipulation::QueueThread()
   while (this->rosnode_->ok())
   {
     this->queue_.callAvailable(ros::WallDuration(timeout));
+  }
+}
+
+void GazeboAerialManipulation::publishPoseThread()
+{
+  while (this->rosnode_->ok()) {
+    if(this->pose_subscriber_count_.get() > 0) {
+      this->pose_pub_.publish(this->current_pose_);
+    }
+    boost::this_thread::sleep(boost::posix_time::milliseconds(20));
   }
 }
 

@@ -60,11 +60,14 @@ math::Vector3 RpyController::update(math::Vector3 rpy_command, math::Quaternion 
       d_error = d_gains_*(omega_d - omega);
     }
     // integral in terms of angle error
-    i_error_ += p_error*dt.Double()*i_gains_;
+    auto i_error = i_error_.get();
+    i_error += p_error*dt.Double()*i_gains_;
     // Clamp integral error
-    i_error_ = clampVector(i_error_, 0.1*max_torque_, -0.1*max_torque_);
+    i_error = clampVector(i_error, 0.1*max_torque_, -0.1*max_torque_);
+    //Update
+    i_error_.set(i_error);
     // evaluate pid output
-    out_torque = p_error + i_error_ + d_error;
+    out_torque = p_error + i_error + d_error;
     // clamp between min and max
     out_torque = clampVector(out_torque, max_torque_, -max_torque_);
   }
