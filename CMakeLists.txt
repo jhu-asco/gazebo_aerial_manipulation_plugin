@@ -128,7 +128,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
    src/gazebo_aerial_manipulation_plugin.cpp
-   src/rpytcontroller.cpp
+   src/rpycontroller.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -197,9 +197,9 @@ target_link_libraries(${PROJECT_NAME}
 #############
 
 ## Add gtest based cpp test target and link libraries
-catkin_add_gtest(${PROJECT_NAME}-rpyt-controller-test tests/rpyt_controller_tests.cpp)
-if(TARGET ${PROJECT_NAME}-rpyt-controller-test)
-  target_link_libraries(${PROJECT_NAME}-rpyt-controller-test ${PROJECT_NAME})
+catkin_add_gtest(${PROJECT_NAME}-rpy-controller-test tests/rpy_controller_tests.cpp)
+if(TARGET ${PROJECT_NAME}-rpy-controller-test)
+  target_link_libraries(${PROJECT_NAME}-rpy-controller-test ${PROJECT_NAME})
 endif()
 
 ## Add folders to be run by python nosetests
