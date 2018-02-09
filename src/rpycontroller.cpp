@@ -4,8 +4,7 @@ using namespace gazebo;
 
 RpyController::RpyController(math::Vector3 p_gains, math::Vector3 i_gains, math::Vector3 d_gains, double max_torque): previous_sim_time_(0.0)
                                                                                                                       , max_dt_(1.0)
-                                                                                                                      , max_torque_(max_torque, max_torque, max_torque)
-                                                                                                                      , min_torque_(-1*max_torque_)
+                                                                                                                      , max_torque_(max_torque)
                                                                                                                       , p_gains_(p_gains)
                                                                                                                       , i_gains_(i_gains)
                                                                                                                       , d_gains_(d_gains)
@@ -16,20 +15,20 @@ RpyController::RpyController(math::Vector3 p_gains, math::Vector3 i_gains, math:
 {
 }
 
-math::Vector3 RpytController::rpydotToOmega(math::Vector3 rpy, math::Vector3 rpydot) {
+math::Vector3 RpyController::rpydotToOmega(math::Vector3 rpy, math::Vector3 rpydot) {
   double s_roll = sin(rpy.x), c_roll = cos(rpy.x);
   double s_pitch = sin(rpy.y), c_pitch = cos(rpy.y);
-  math::Matrix M(1, 0,          -s_pitch,
+  math::Matrix3 M(1, 0,          -s_pitch,
                  0, c_roll,  c_pitch*s_roll,
                  0, -s_roll, c_pitch*c_roll);
   return M*rpydot;
 }
 
-math::Vector3 RpytController::omegaToRpydot(math::Vector3 rpy, math::Vector3 omega) {
+math::Vector3 RpyController::omegaToRpydot(math::Vector3 rpy, math::Vector3 omega) {
   double s_roll = sin(rpy.x), c_roll = cos(rpy.x);
   double s_pitch = sin(rpy.y), c_pitch = cos(rpy.y);
   double t_pitch = s_pitch/c_pitch;
-  math::Matrix M(1, s_roll*t_pitch,  c_roll*t_pitch,
+  math::Matrix3 M(1, s_roll*t_pitch,  c_roll*t_pitch,
                  0, c_roll,  -s_roll,
                  0, -s_roll/c_pitch, c_roll/c_pitch);
   return M*omega;
@@ -46,9 +45,9 @@ math::Vector3 RpyController::update(math::Vector3 rpy_command, math::Quaternion 
   }else {
     // Compute angle error
     // quat = (R.T Rd)
-    desired_orientation = math::Quaternion::EulerToQuaternion(rpy_command);
+    auto desired_orientation = math::Quaternion::EulerToQuaternion(rpy_command);
     // quat -> angle*theta*p_gains gives p error
-    error_orientation = orientation.GetInverse()*desired_orientation;
+    math::Quaternion error_orientation = orientation.GetInverse()*desired_orientation;
     math::Vector3 error_axis;
     double error_angle;
     error_orientation.GetAsAxis(error_axis, error_angle);
@@ -56,18 +55,18 @@ math::Vector3 RpyController::update(math::Vector3 rpy_command, math::Quaternion 
     // omega_d = M(rpy)*rpydot
     math::Vector3 d_error = math::Vector3::Zero;
     if(!invalid_prev_command_) {
-      math::Vector3 rpyd_dot = (rpy_command - rpy_command_prev_)*(1.0/dt);
+      math::Vector3 rpyd_dot = (rpy_command - rpy_command_prev_)*(1.0/dt.Double());
       math::Vector3 omega_d = rpydotToOmega(rpy_command_prev_, rpyd_dot);
       d_error = d_gains_*(omega_d - omega);
     }
     // integral in terms of angle error
-    i_error_ += p_error*dt*i_gains_;
+    i_error_ += p_error*dt.Double()*i_gains_;
     // Clamp integral error
-    i_error_ = math::clamp(i_error_, 0.1*min_torque_, 0.1*max_torque_);
+    i_error_ = clampVector(i_error_, 0.1*max_torque_, -0.1*max_torque_);
     // evaluate pid output
     out_torque = p_error + i_error_ + d_error;
     // clamp between min and max
-    out_torque = math::clamp(out_torque, min_torque_, max_torque_);
+    out_torque = clampVector(out_torque, max_torque_, -max_torque_);
   }
   // Update previous commands and time
   rpy_command_prev_ = rpy_command;

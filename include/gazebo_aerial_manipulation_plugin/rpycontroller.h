@@ -8,24 +8,32 @@ class RpyController
 {
 private:
   using GazeboTime = gazebo::common::Time;
+  using GazeboVector = gazebo::math::Vector3;
   GazeboTime previous_sim_time_;///< Last simulation time
   double max_dt_;///< Maximum time diff allowed
-  math::Vector3 max_torque_;///< Maximum allowed torque
-  math::Vector3 min_torque_;///< Maximum allowed torque
-  math::Vector3 p_gains_;
-  math::Vector3 i_gains_;
-  math::Vector3 d_gains_;
-  math::Vector3 rpy_command_prev_;
-  math::Vector3 i_error_;
-  math::Vector3 prev_body_torque_;
+  double max_torque_;///< Maximum allowed torque
+  GazeboVector p_gains_;
+  GazeboVector i_gains_;
+  GazeboVector d_gains_;
+  GazeboVector rpy_command_prev_;
+  GazeboVector i_error_;
+  GazeboVector prev_body_torque_;
   bool invalid_prev_command_;
+  GazeboVector clampVector(GazeboVector vector, double ub, double lb) {
+    GazeboVector out;
+    out.x = vector.x > ub? ub: vector.x < lb?lb:vector.x;
+    out.y = vector.y > ub? ub: vector.y < lb?lb:vector.y;
+    out.z = vector.z > ub? ub: vector.z < lb?lb:vector.z;
+    return out;
+  }
+
 public:
-  RpyController(math::Vector3 p_gains, math::Vector3 i_gains, math::Vector3 d_gains, double max_torque);
-  gazebo::math::Vector3 update(gazebo::math::Vector3 rpy_command, math::Quaternion orientation, math::Vector3 omega, GazeboTime sim_time);
-  gazebo::math::Vector3 rpydotToOmega(math::Vector3 rpy, math::Vector3 rpydot);
-  gazebo::math::Vector3 omegaToRpydot(math::Vector3 rpy, math::Vector3 omega);
+  RpyController(GazeboVector p_gains, GazeboVector i_gains, GazeboVector d_gains, double max_torque);
+  GazeboVector update(GazeboVector rpy_command, gazebo::math::Quaternion orientation, GazeboVector omega, GazeboTime sim_time);
+  GazeboVector rpydotToOmega(GazeboVector rpy, GazeboVector rpydot);
+  GazeboVector omegaToRpydot(GazeboVector rpy, GazeboVector omega);
   void reset() {
     invalid_prev_command_ = true;
-    i_error_ = gazebo::math::Vector3::Zero;
+    i_error_ = GazeboVector::Zero;
   }
 };
