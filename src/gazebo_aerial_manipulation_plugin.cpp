@@ -15,14 +15,17 @@ GZ_REGISTER_MODEL_PLUGIN(GazeboAerialManipulation)
 
 ////////////////////////////////////////////////////////////////////////////////
 // Constructor
-GazeboAerialManipulation::GazeboAerialManipulation()
+GazeboAerialManipulation::GazeboAerialManipulation() : p_gains_(5,5,5)
+, i_gains_(0,0,0)
+, d_gains_(5,5,5)
+, kt_(0.16)
+, max_torque_(10)
+, rpy_controller_(p_gains_, i_gains_, d_gains_, max_torque_)
 {
-  this->wrench_msg_.force.x = 0;
-  this->wrench_msg_.force.y = 0;
-  this->wrench_msg_.force.z = 0;
-  this->wrench_msg_.torque.x = 0;
-  this->wrench_msg_.torque.y = 0;
-  this->wrench_msg_.torque.z = 0;
+  this->rpyt_msg_.roll = 0;
+  this->rpyt_msg_.pitch = 0;
+  this->rpyt_msg_.yaw = 0;
+  this->rpyt_msg_.thrust = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -91,11 +94,11 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
   this->rosnode_ = new ros::NodeHandle(this->robot_namespace_);
   // Can use model name here - _model->GetName()
   // Custom Callback Queue
-  ros::SubscribeOptions so = ros::SubscribeOptions::create<geometry_msgs::Wrench>(
-    "base_wrench",1,
+  ros::SubscribeOptions so = ros::SubscribeOptions::create<gazebo_aerial_manipulation_plugin::RollPitchYawThrust>(
+    "rpyt_command",1,
     boost::bind( &GazeboAerialManipulation::UpdateObjectForce,this,_1),
     ros::VoidPtr(), &this->queue_);
-  this->wrench_sub_ = this->rosnode_->subscribe(so);
+  this->rpyt_command_sub_ = this->rosnode_->subscribe(so);
 
   ros::SubscribeOptions reset_so = ros::SubscribeOptions::create<std_msgs::Empty>(
     "model_reset",1,
@@ -121,14 +124,9 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
 
 ////////////////////////////////////////////////////////////////////////////////
 // Update the controller
-void GazeboAerialManipulation::UpdateObjectForce(const geometry_msgs::Wrench::ConstPtr& _msg)
+void GazeboAerialManipulation::UpdateObjectForce(const gazebo_aerial_manipulation_plugin::RollPitchYawThrust::ConstPtr& _msg)
 {
-  this->wrench_msg_.force.x = _msg->force.x;
-  this->wrench_msg_.force.y = _msg->force.y;
-  this->wrench_msg_.force.z = _msg->force.z;
-  this->wrench_msg_.torque.x = _msg->torque.x;
-  this->wrench_msg_.torque.y = _msg->torque.y;
-  this->wrench_msg_.torque.z = _msg->torque.z;
+  rpyt_msg_ = *_msg; 
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -136,6 +134,8 @@ void GazeboAerialManipulation::UpdateObjectForce(const geometry_msgs::Wrench::Co
 void GazeboAerialManipulation::reset(const std_msgs::Empty::ConstPtr&) {
   if(this->model_) {
     this->model_->Reset();
+    rpy_controller_.reset();
+    this->rpyt_msg_.roll = this->rpyt_msg_.pitch = this->rpyt_msg_.yaw = this->rpyt_msg_.thrust = 0;
   }
 }
 
@@ -163,8 +163,14 @@ void GazeboAerialManipulation::setModelPose(const geometry_msgs::Pose::ConstPtr&
 void GazeboAerialManipulation::UpdateChild()
 {
   this->lock_.lock();
-  ignition::math::Vector3d force(this->wrench_msg_.force.x,this->wrench_msg_.force.y,this->wrench_msg_.force.z);
-  ignition::math::Vector3d torque(this->wrench_msg_.torque.x,this->wrench_msg_.torque.y,this->wrench_msg_.torque.z);
+  math::Vector3 rpy_command(rpyt_msg_.roll, rpyt_msg_.pitch, rpyt_msg_.yaw);
+  math::Pose current_pose = this->link_->GetWorldPose();
+  math::Vector3 omega_i = this->link_->GetWorldAngularVel();
+  math::Vector3 omega_b = current_pose.rot.RotateVectorReverse(omega_i);
+  math::Vector3 body_torque = rpy_controller_.update(rpy_command, current_pose.rot, omega_b, this->world_->GetSimTime());
+  math::Vector3 body_force(0, 0, kt_*rpyt_msg_.thrust);
+  math::Vector3 force = current_pose.rot.RotateVector(body_force);
+  math::Vector3 torque = current_pose.rot.RotateVector(body_torque);
   this->link_->AddForce(force);
   this->link_->AddTorque(torque);
   this->lock_.unlock();

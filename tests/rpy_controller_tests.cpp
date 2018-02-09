@@ -16,7 +16,7 @@ protected:
 public:
   RpyControllerTests(): p_gains_(5.0, 5.0, 5.0)
   , i_gains_(Vector3::Zero)
-  , d_gains_(1.0, 1.0, 1.0)
+  , d_gains_(5.0, 5.0, 5.0)
   , max_torque_(5.0)
   , controller_(p_gains_, i_gains_, d_gains_, max_torque_) {}
 };
@@ -38,10 +38,12 @@ TEST_F(RpyControllerTests, testConverged) {
 }
 
 TEST_F(RpyControllerTests, testLimits) {
-  Vector3 rpy_command(1.0, 1.0, 1.0);
+  Vector3 rpy_command(0.0, 0.0, 0.0);
   Quaternion orientation(Vector3::Zero);
   Vector3 omega(0,0,0);
   Vector3 body_torque = controller_.update(rpy_command, orientation, omega, 0.01);
+  rpy_command = Vector3(2,2,2);
+  body_torque = controller_.update(rpy_command, orientation, omega, 0.02);
   ASSERT_EQ(body_torque.x, max_torque_);
   ASSERT_EQ(body_torque.y, max_torque_);
   ASSERT_EQ(body_torque.z, max_torque_);
@@ -63,25 +65,17 @@ TEST_F(RpyControllerTests, testdT) {
 }
 
 TEST_F(RpyControllerTests, testRunning) {
-  Vector3 rpy_command(0,0,1);
+  Vector3 rpy_command(-0.5,0.5,1);
   Vector3 rpy(0,0,0);
   Vector3 omega(Vector3::Zero);
   gazebo::common::Time time(0);
   double dt = 0.01;
-  for(int i = 0; i < 100; i++) {
+  for(int i = 0; i < 1000; i++) {
     time = time + dt;
     Quaternion orientation(rpy);
     Vector3 body_torque = controller_.update(rpy_command, orientation, omega, time);
     rpy =  rpy + controller_.omegaToRpydot(rpy, omega)*dt;
     omega = omega + body_torque*dt;
-    std::cout<<"Rpy: "<<rpy.x<<", "<<rpy.y<<", "<<rpy.z<<std::endl;
-    /*auto orientation_v = math::Vector3(orientation.x, orientation.y, orientation.z)
-    auto dq_v = (0.5*dt)*(orientation.w*omega - omega.Cross(orientation_v));
-    double dq_w = -(0.5*dt)*omega.Dot(orientation_v);
-    Quaternion dq(dq_w, dq_v.x, dq_v.y, dq_v.z);
-    orientation += dq;
-    orientation.Normalize();
-    */
   }
   ASSERT_NEAR(rpy.x, rpy_command.x, 1e-2);
   ASSERT_NEAR(rpy.y, rpy_command.y, 1e-2);

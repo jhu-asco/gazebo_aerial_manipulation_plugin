@@ -11,7 +11,6 @@
 // Custom Callback Queue
 #include <ros/callback_queue.h>
 #include <ros/subscribe_options.h>
-#include <geometry_msgs/Wrench.h>
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/Empty.h>
 
@@ -23,6 +22,9 @@
 #include <gazebo/transport/TransportTypes.hh>
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/common/Events.hh>
+
+#include <gazebo_aerial_manipulation_plugin/RollPitchYawThrust.h>
+#include <gazebo_aerial_manipulation_plugin/rpycontroller.h>
 
 
 namespace gazebo
@@ -67,9 +69,9 @@ class GazeboAerialManipulation : public ModelPlugin
   // Documentation inherited
   protected: virtual void UpdateChild();
 
-  /// \brief call back when a Wrench message is published
+  /// \brief call back when a rpy command is published
   /// \param[in] _msg The Incoming ROS message representing the new force to exert.
-  private: void UpdateObjectForce(const geometry_msgs::Wrench::ConstPtr& _msg);
+  private: void UpdateObjectForce(const gazebo_aerial_manipulation_plugin::RollPitchYawThrust::ConstPtr& _msg);
 
   /// \brief reset the model when this message is published
   private: void reset(const std_msgs::Empty::ConstPtr&);
@@ -92,7 +94,7 @@ class GazeboAerialManipulation : public ModelPlugin
 
   /// \brief A pointer to the ROS node.  A node will be instantiated if it does not exist.
   private: ros::NodeHandle* rosnode_;
-  private: ros::Subscriber wrench_sub_;
+  private: ros::Subscriber rpyt_command_sub_;
   private: ros::Subscriber reset_sub_;
   private: ros::Subscriber model_pose_sub_;
 
@@ -110,10 +112,20 @@ class GazeboAerialManipulation : public ModelPlugin
   /// \brief Thead object for the running callback Thread.
   private: boost::thread callback_queue_thread_;
   /// \brief Container for the wrench force that this plugin exerts on the body.
-  private: geometry_msgs::Wrench wrench_msg_;
+  private: gazebo_aerial_manipulation_plugin::RollPitchYawThrust rpyt_msg_;
 
   // Pointer to the update event connection
   private: event::ConnectionPtr update_connection_;
+
+  private:
+    math::Vector3 p_gains_;
+    math::Vector3 i_gains_;
+    math::Vector3 d_gains_;
+    double kt_;
+    double max_torque_;
+
+  /// \brief computes body torques based on rpy commands
+  private: RpyController rpy_controller_;
 };
 /** \} */
 /// @}
