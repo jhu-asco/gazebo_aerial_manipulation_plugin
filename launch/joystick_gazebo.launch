@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="world" value="$(find gazebo_aerial_manipulation_plugin)/worlds/quadrotor.world"/>
+  <node pkg="gazebo_aerial_manipulation_plugin" type="joy_cmd_publisher.py" name="joy_transporter"/>
+  <node pkg="joy" type="joy_node" name="joy_node">
+    <param name="deadzone" type="double" value="0.01"/>
+  </node>
+  <node pkg="gazebo_aerial_manipulation_plugin" type="gazebo" name="gazebo_node" args="$(arg world)"/>
+  <!--<remap from="~common/goal_pose_command" to="/rqt_gui/pose_command_combined" />-->
+  <!--<param name="~uav/app_bundle_id" type="string" value="Welcome to use dji-sdk"/>-->
+</launch>
