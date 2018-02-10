@@ -116,7 +116,7 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
     ros::VoidPtr(), &this->queue_);
   this->model_pose_sub_ = this->rosnode_->subscribe(model_pose_so);
 
-  ros::AdvertiseOptions ao = ros::AdvertiseOptions::create<geometry_msgs::PoseStamped>(
+  ros::AdvertiseOptions ao = ros::AdvertiseOptions::create<gazebo_aerial_manipulation_plugin::RPYPose>(
       "base_pose",1,
       boost::bind( &GazeboAerialManipulation::poseConnect,this),
       boost::bind( &GazeboAerialManipulation::poseDisconnect,this), ros::VoidPtr(), &this->queue_);
@@ -188,13 +188,12 @@ void GazeboAerialManipulation::UpdateChild()
   math::Vector3 body_force(0, 0, kt_*rpyt_msg.thrust);
   if(pose_subscriber_count_.get() > 0) {
     current_pose_.header.stamp = ros::Time::now();
-    current_pose_.pose.position.x = current_pose.pos.x;
-    current_pose_.pose.position.y = current_pose.pos.y;
-    current_pose_.pose.position.z = current_pose.pos.z;
-    current_pose_.pose.orientation.x = current_pose.rot.x;
-    current_pose_.pose.orientation.y = current_pose.rot.y;
-    current_pose_.pose.orientation.z = current_pose.rot.z;
-    current_pose_.pose.orientation.w = current_pose.rot.w;
+    current_pose_.position.x = current_pose.pos.x;
+    current_pose_.position.y = current_pose.pos.y;
+    current_pose_.position.z = current_pose.pos.z;
+    current_pose_.rpy.x = current_pose.rot.GetRoll();
+    current_pose_.rpy.y = current_pose.rot.GetPitch();
+    current_pose_.rpy.z = current_pose.rot.GetYaw();
   }
   math::Vector3 omega_b = current_pose.rot.RotateVectorReverse(omega_i);
   math::Vector3 body_torque = rpy_controller_.update(rpy_command, current_pose.rot, omega_b, this->world_->GetSimTime());

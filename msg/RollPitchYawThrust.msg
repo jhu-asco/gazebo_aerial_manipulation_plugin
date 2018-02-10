@@ -1,5 +1,5 @@
 # Roll, pitch ,yaw, thrust message
-# rpy are achieved in body xyz format
+# rpy are in Body ZYX format
 float64 roll
 float64 pitch
 float64 yaw

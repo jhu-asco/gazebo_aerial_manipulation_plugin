@@ -12,7 +12,6 @@
 #include <ros/callback_queue.h>
 #include <ros/subscribe_options.h>
 #include <geometry_msgs/Pose.h>
-#include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Empty.h>
 
 #include <ros/ros.h>
@@ -26,6 +25,7 @@
 #include <gazebo_aerial_manipulation_plugin/RollPitchYawThrust.h>
 #include <gazebo_aerial_manipulation_plugin/rpycontroller.h>
 #include <gazebo_aerial_manipulation_plugin/atomic.h>
+#include <gazebo_aerial_manipulation_plugin/RPYPose.h>
 
 
 namespace gazebo
@@ -132,7 +132,7 @@ class GazeboAerialManipulation : public ModelPlugin
 
   /// \brief computes body torques based on rpy commands
   private: RpyController rpy_controller_;
-  private: geometry_msgs::PoseStamped current_pose_;
+  private: gazebo_aerial_manipulation_plugin::RPYPose current_pose_;
   private:
     void poseConnect() {
       pose_subscriber_count_.set(pose_subscriber_count_.get() + 1);
