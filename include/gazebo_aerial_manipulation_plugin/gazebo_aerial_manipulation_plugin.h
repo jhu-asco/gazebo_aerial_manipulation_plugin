@@ -64,6 +64,9 @@ class GazeboAerialManipulation : public ModelPlugin
   /// \brief Destructor
   public: virtual ~GazeboAerialManipulation();
 
+  // Load rpy controller using provided params
+  protected: void LoadRPYController(sdf::ElementPtr _sdf);
+
   // Documentation inherited
   protected: void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
 

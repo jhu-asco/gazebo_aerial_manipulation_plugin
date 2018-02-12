@@ -47,6 +47,31 @@ GazeboAerialManipulation::~GazeboAerialManipulation()
   delete this->rosnode_;
 }
 
+void GazeboAerialManipulation::LoadRPYController(sdf::ElementPtr _sdf) {
+  if(_sdf->HasElement("roll_pid_gains")) {
+    auto r_pid_gains = _sdf->GetElement("roll_pid_gains");
+    p_gains_.x = r_pid_gains->Get<double>("p");
+    i_gains_.x = r_pid_gains->Get<double>("i");
+    d_gains_.x = r_pid_gains->Get<double>("d");
+  }
+  if(_sdf->HasElement("pitch_pid_gains")) {
+    auto p_pid_gains = _sdf->GetElement("pitch_pid_gains");
+    p_gains_.y = p_pid_gains->Get<double>("p");
+    i_gains_.y = p_pid_gains->Get<double>("i");
+    d_gains_.y = p_pid_gains->Get<double>("d");
+  }
+  if(_sdf->HasElement("yaw_pid_gains")) {
+    auto y_pid_gains = _sdf->GetElement("yaw_pid_gains");
+    p_gains_.z = y_pid_gains->Get<double>("p");
+    i_gains_.z = y_pid_gains->Get<double>("i");
+    d_gains_.z = y_pid_gains->Get<double>("d");
+  }
+  if(_sdf->HasElement("max_torque")) {
+    max_torque_ = _sdf->GetElement("max_torque")->Get<double>();
+  }
+  rpy_controller_ = RpyController(p_gains_, i_gains_, d_gains_, max_torque_);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
 void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
@@ -76,6 +101,13 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
     ROS_FATAL_NAMED("force", "aerial_manipulation_plugin plugin error: link named: %s does not exist\n",this->link_name_.c_str());
     return;
   }
+  // Get rpy controller
+  LoadRPYController(_sdf);
+
+  // Get Thrust gain
+  if(_sdf->HasElement("thrust_gain")) {
+    kt_ = _sdf->GetElement("thrust_gain")->Get<double>();
+  }
 
   /**
   * If ros has not been initialized start ros. Is not compatible with ros api plugin
@@ -86,14 +118,6 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
     char **argv;
     ros::init(argc,argv,"gazebo",ros::init_options::NoSigintHandler);
   }
-  // Make sure the ROS node for Gazebo has already been initialized
-  /*if (!ros::isInitialized())
-  {
-    ROS_FATAL_STREAM_NAMED("force", "A ROS node for Gazebo has not been initialized, unable to load plugin. "
-      << "Load the Gazebo system plugin 'libgazebo_ros_api_plugin.so' in the gazebo_ros package)");
-    return;
-  }
-  */
 
   this->rosnode_ = new ros::NodeHandle(this->robot_namespace_);
   // Can use model name here - _model->GetName()
