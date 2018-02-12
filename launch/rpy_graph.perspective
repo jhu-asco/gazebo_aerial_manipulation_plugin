@@ -1,0 +1,203 @@
+{
+  "keys": {},
+  "groups": {
+    "pluginmanager": {
+      "keys": {
+        "running-plugins": {
+          "type": "repr",
+          "repr": "{u'rqt_plot/Plot': [3, 2, 1]}"
+        }
+      },
+      "groups": {
+        "plugin__rqt_plot__Plot__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__DataPlotWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'MatPlot'"
+                }
+              },
+              "groups": {}
+            },
+            "plugin": {
+              "keys": {
+                "autoscroll": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "plot_type": {
+                  "type": "repr",
+                  "repr": "1"
+                },
+                "topics": {
+                  "type": "repr",
+                  "repr": "[u'/base_pose/rpy/x', u'/rpyt_command/roll']"
+                },
+                "y_limits": {
+                  "type": "repr",
+                  "repr": "[-0.4563559081583746, 1.0]"
+                },
+                "x_limits": {
+                  "type": "repr",
+                  "repr": "[189.26288890838623, 190.26288890838623]"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_plot__Plot__2": {
+          "keys": {},
+          "groups": {
+            "dock_widget__DataPlotWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'MatPlot (2)'"
+                }
+              },
+              "groups": {}
+            },
+            "plugin": {
+              "keys": {
+                "autoscroll": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "plot_type": {
+                  "type": "repr",
+                  "repr": "1"
+                },
+                "topics": {
+                  "type": "repr",
+                  "repr": "[u'/base_pose/rpy/y', u'/rpyt_command/pitch']"
+                },
+                "y_limits": {
+                  "type": "repr",
+                  "repr": "[-0.5235987755982988, 1.0]"
+                },
+                "x_limits": {
+                  "type": "repr",
+                  "repr": "[181.2042441368103, 182.2042441368103]"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__aerial_autonomy__aerial_autonomy__aerial_autonomy_gui__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u''"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_plot__Plot__3": {
+          "keys": {},
+          "groups": {
+            "dock_widget__DataPlotWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'MatPlot (3)'"
+                }
+              },
+              "groups": {}
+            },
+            "plugin": {
+              "keys": {
+                "autoscroll": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "plot_type": {
+                  "type": "repr",
+                  "repr": "1"
+                },
+                "topics": {
+                  "type": "repr",
+                  "repr": "[u'/base_pose/rpy/z', u'/rpyt_command/yaw']"
+                },
+                "y_limits": {
+                  "type": "repr",
+                  "repr": "[-0.02254709941842473, 1.0]"
+                },
+                "x_limits": {
+                  "type": "repr",
+                  "repr": "[172.06454038619995, 173.06454038619995]"
+                }
+              },
+              "groups": {}
+            }
+          }
+        }
+      }
+    },
+    "mainwindow": {
+      "keys": {
+        "geometry": {
+          "type": "repr(QByteArray.hex)",
+          "repr(QByteArray.hex)": "QtCore.QByteArray('01d9d0cb00020000000007800000001800000eff00000437000007800000001800000eff0000043700000001000000000780')",
+          "pretty-print": "           7       7     "
+        },
+        "state": {
+          "type": "repr(QByteArray.hex)",
+          "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff00000000fd0000000100000003000007800000040afc0100000004fb0000007400610065007200690061006c005f006100750074006f006e006f006d0079005f005f00610065007200690061006c005f006100750074006f006e006f006d0079005f005f00610065007200690061006c005f006100750074006f006e006f006d0079005f006700750069005f005f0031005f005f01000000000000073f0000000000000000fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0031005f005f00440061007400610050006c006f007400570069006400670065007401000000000000028f0000017800fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0032005f005f00440061007400610050006c006f007400570069006400670065007401000002950000029a0000017800fffffffb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0033005f005f00440061007400610050006c006f007400570069006400670065007401000005350000024b0000017800ffffff000007800000000000000004000000040000000800000008fc00000001000000030000000100000036004d0069006e0069006d0069007a006500640044006f0063006b00570069006400670065007400730054006f006f006c0062006100720000000000ffffffff0000000000000000')",
+          "pretty-print": "                 taerial_autonomy__aerial_autonomy__aerial_autonomy_gui__1__          Brqt_plot__Plot__1__DataPlotWidget          Brqt_plot__Plot__2__DataPlotWidget          Brqt_plot__Plot__3__DataPlotWidget                            6MinimizedDockWidgetsToolbar        "
+        }
+      },
+      "groups": {
+        "toolbar_areas": {
+          "keys": {
+            "MinimizedDockWidgetsToolbar": {
+              "type": "repr",
+              "repr": "8"
+            }
+          },
+          "groups": {}
+        }
+      }
+    }
+  }
+}

@@ -12,6 +12,8 @@ class JoyTransport:
     self.rpyt_min = [-np.pi/6, -np.pi/6, -np.pi, 30]
     self.rpyt_max = [np.pi/6, np.pi/6, np.pi, 120]
     self.joy_limits = [0.55, 0.55, 0.55, 0.65]
+    self.yaw_cmd = 0.0
+    self.dt = 1.0/30.0 # Frequency of joy publisher
 
   @staticmethod
   def map(in_value, in_min, in_max, out_min, out_max):
@@ -28,8 +30,10 @@ class JoyTransport:
     rpyt_msg = RollPitchYawThrust()
     rpyt_msg.roll = self.map(-1*joy_msg.axes[0], -self.joy_limits[0], self.joy_limits[0], self.rpyt_min[0], self.rpyt_max[0]);
     rpyt_msg.pitch = self.map(-1*joy_msg.axes[1], -self.joy_limits[1], self.joy_limits[1], self.rpyt_min[1], self.rpyt_max[1]);
-    rpyt_msg.yaw = self.map(-1*joy_msg.axes[5], -self.joy_limits[2], self.joy_limits[2], self.rpyt_min[2], self.rpyt_max[2]);
+    yaw_rate = self.map(joy_msg.axes[5], -self.joy_limits[2], self.joy_limits[2], self.rpyt_min[2], self.rpyt_max[2]);
     rpyt_msg.thrust = self.map(joy_msg.axes[2], -self.joy_limits[3], self.joy_limits[3], self.rpyt_min[3], self.rpyt_max[3]);
+    self.yaw_cmd = self.yaw_cmd + yaw_rate*self.dt
+    rpyt_msg.yaw = self.yaw_cmd
     self.rpyt_pub.publish(rpyt_msg)
 
 if __name__ == '__main__':
