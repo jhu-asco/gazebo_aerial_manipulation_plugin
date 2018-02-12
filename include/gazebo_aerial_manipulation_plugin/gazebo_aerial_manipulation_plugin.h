@@ -132,6 +132,7 @@ class GazeboAerialManipulation : public ModelPlugin
     double kt_;
     double max_torque_;
     Atomic<int> pose_subscriber_count_;
+    int pose_pub_milliseconds_;
 
   /// \brief computes body torques based on rpy commands
   private: RpyController rpy_controller_;

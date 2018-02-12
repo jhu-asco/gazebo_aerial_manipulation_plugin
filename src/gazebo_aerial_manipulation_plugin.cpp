@@ -21,6 +21,7 @@ GazeboAerialManipulation::GazeboAerialManipulation() : p_gains_(5,5,5)
 , kt_(0.16)
 , max_torque_(10)
 , pose_subscriber_count_(0)
+, pose_pub_milliseconds_(20)
 , rpy_controller_(p_gains_, i_gains_, d_gains_, max_torque_)
 {
   gazebo_aerial_manipulation_plugin::RollPitchYawThrust rpyt_msg;
@@ -107,6 +108,13 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
   // Get Thrust gain
   if(_sdf->HasElement("thrust_gain")) {
     kt_ = _sdf->GetElement("thrust_gain")->Get<double>();
+  }
+
+  if(_sdf->HasElement("pose_pub_freq")) {
+    double freq = _sdf->GetElement("pose_pub_freq")->Get<double>();
+    if(freq > 1e-2 && freq < 1e3) {
+      pose_pub_milliseconds_ = std::ceil(1000.0/freq);
+    }
   }
 
   /**
@@ -246,7 +254,7 @@ void GazeboAerialManipulation::publishPoseThread()
     if(this->pose_subscriber_count_.get() > 0) {
       this->pose_pub_.publish(this->current_pose_);
     }
-    boost::this_thread::sleep(boost::posix_time::milliseconds(20));
+    boost::this_thread::sleep(boost::posix_time::milliseconds(pose_pub_milliseconds_));
   }
 }
 
