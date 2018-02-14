@@ -19,6 +19,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert bag file')
     parser.add_argument('--log_folder', type=str)
     parser.add_argument('--bag_name', type=str)
+    parser.add_argument('--no-plot-data', dest='plot_data', action='store_false', default=True)
+    parser.add_argument('--write-data', dest='write_data', action='store_true', default=False)
     args = parser.parse_args()
     if not os.path.isdir(args.log_folder):
         print "Log folder not found: ", args.log_folder
@@ -60,22 +62,24 @@ if __name__ == '__main__':
             else:
                 break
     rpyt_data = np.vstack(rpyt_data_list)
-    np.savez(out_file, rpyt_data=rpyt_data, pose_data=pose_data)
-    # %% Plot
-    plt.figure(1)
-    axis_name = ['roll', 'pitch', 'yaw']
-    for i in range(3):
-        plt.subplot(3,1,i+1)
-        plt.plot(pose_data[:,0], pose_data[:,i+4])
-        plt.plot(rpyt_data[:,0], rpyt_data[:,i+1])
-        plt.ylabel('Angle (rad)')
-        plt.legend([axis_name[i], axis_name[i]+'_command'])
-    plt.xlabel('Time(sec)')
-    plt.figure(2)
-    axis_name = ['x', 'y', 'z']
-    for i in range(3):
-        plt.subplot(3,1,i+1)
-        plt.plot(pose_data[:,0], pose_data[:,i+1])
-        plt.ylabel(axis_name[i] + ' (m)')
-    plt.xlabel('Time(sec)')
-    plt.show()
+    if args.write_data:
+        np.savez(out_file, rpyt_data=rpyt_data, pose_data=pose_data)
+    if args.plot_data:
+        # %% Plot
+        plt.figure(1)
+        axis_name = ['roll', 'pitch', 'yaw']
+        for i in range(3):
+            plt.subplot(3,1,i+1)
+            plt.plot(pose_data[:,0], pose_data[:,i+4])
+            plt.plot(rpyt_data[:,0], rpyt_data[:,i+1])
+            plt.ylabel('Angle (rad)')
+            plt.legend([axis_name[i], axis_name[i]+'_command'])
+        plt.xlabel('Time(sec)')
+        plt.figure(2)
+        axis_name = ['x', 'y', 'z']
+        for i in range(3):
+            plt.subplot(3,1,i+1)
+            plt.plot(pose_data[:,0], pose_data[:,i+1])
+            plt.ylabel(axis_name[i] + ' (m)')
+        plt.xlabel('Time(sec)')
+        plt.show()
