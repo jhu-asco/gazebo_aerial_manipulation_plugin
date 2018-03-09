@@ -13,6 +13,7 @@
 #include <ros/subscribe_options.h>
 #include <geometry_msgs/Pose.h>
 #include <std_msgs/Empty.h>
+#include <sensor_msgs/JointState.h>
 
 #include <ros/ros.h>
 #include <boost/thread.hpp>
@@ -38,7 +39,8 @@ namespace gazebo
     double desired_target;// Servo goal
     int control_type;//Position control 0; Velocity Control 1
     physics::JointPtr joint_;
-    JointInfo(physics::JointPtr joint):desired_target(0), control_type(0), joint_(joint)
+    std::string joint_name_;
+    JointInfo(physics::JointPtr joint, std::string joint_name):desired_target(0), control_type(0), joint_(joint), joint_name_(joint_name)
     {
     }
   };
@@ -84,15 +86,18 @@ class GazeboAerialManipulation : public ModelPlugin
   protected: void LoadRPYController(sdf::ElementPtr _sdf);
 
   // Load joints and servos using provided params
-  protected: void LoadJointInfo(sdf::ElementPtr _sdf);
+protected: void LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf);
 
   // Documentation inherited
   protected: void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
 
   // Documentation inherited
+  ///\brief Run all things when model gets updated
   protected: virtual void UpdateChild();
+  ///\brief Update base link pose and rpyt controller
+  protected: virtual void UpdateBaseLink();
   ///\brief Control joints using servos
-  protected: virtual void UpdateJointEfforts()
+  protected: virtual void UpdateJointEfforts();
 
   /// \brief call back when a rpy command is published
   /// \param[in] _msg The Incoming ROS message representing the new force to exert.
@@ -108,8 +113,11 @@ class GazeboAerialManipulation : public ModelPlugin
   /// \brief The custom callback queue thread function.
   private: void QueueThread();
 
-  /// \briedf The thread function to publish pose
+  /// \brief The thread function to publish pose
   private: void publishPoseThread();
+
+  /// \brief The thread function to publish joint state
+  private: void publishJointStateThread();
 
   /// \brief A pointer to the gazebo world.
   private: physics::WorldPtr world_;
@@ -127,6 +135,7 @@ class GazeboAerialManipulation : public ModelPlugin
   private: ros::Subscriber model_pose_sub_;
 
   private: ros::Publisher pose_pub_;
+  private: ros::Publisher joint_state_pub_;
 
   /// \brief The Link this plugin is attached to, and will exert forces on.
   private: std::string link_name_;
@@ -140,6 +149,8 @@ class GazeboAerialManipulation : public ModelPlugin
   private: boost::thread callback_queue_thread_;
   /// \brief Thread object for publishing pose
   private: boost::thread publish_pose_thread_;
+  /// \brief Thread object for publishing joint state
+  private: boost::thread publish_joint_thread_;
   /// \brief Container for the wrench force that this plugin exerts on the body.
   private: Atomic<gazebo_aerial_manipulation_plugin::RollPitchYawThrust> rpyt_msg_;
 
@@ -154,10 +165,13 @@ class GazeboAerialManipulation : public ModelPlugin
     double max_torque_;
     Atomic<int> pose_subscriber_count_;
     int pose_pub_milliseconds_;
+    int joint_pub_milliseconds_;
+    common::Time previous_sim_time_;
 
   /// \brief computes body torques based on rpy commands
   private: RpyController rpy_controller_;
   private: gazebo_aerial_manipulation_plugin::RPYPose current_pose_;
+  private: sensor_msgs::JointState joint_state_;
   private: JointInfoVec joint_info_;
   private:
     void poseConnect() {
