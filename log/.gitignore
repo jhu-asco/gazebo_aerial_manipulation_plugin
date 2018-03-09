@@ -1,2 +1,4 @@
 *.bag
 *.npz
+*.pickle
+*.tar.gz

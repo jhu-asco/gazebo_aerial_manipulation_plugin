@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert bag file')
     parser.add_argument('--log_folder', type=str)
     parser.add_argument('--bag_name', type=str)
+    parser.add_argument('--max_T', type=float, default=100)
     parser.add_argument('--no-plot-data', dest='plot_data', action='store_false', default=True)
     parser.add_argument('--write-data', dest='write_data', action='store_true', default=False)
     args = parser.parse_args()
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     z_base = 0.19
     pose_data_list = []
     message_streaming_started = False
-    max_tdiff = 60
+    max_tdiff = args.max_T
     for _,msg,t in bag.read_messages(['/base_pose']):
         if msg.position.z - z_base > 0:
             if t0 is None:
@@ -63,7 +64,7 @@ if __name__ == '__main__':
                 break
     rpyt_data = np.vstack(rpyt_data_list)
     if args.write_data:
-        np.savez(out_file, rpyt_data=rpyt_data, pose_data=pose_data)
+        np.savez(out_file, control_data=rpyt_data, sensor_data=pose_data)
     if args.plot_data:
         # %% Plot
         plt.figure(1)

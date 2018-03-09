@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="world" value="$(find gazebo_aerial_manipulation_plugin)/worlds/quadrotor.world"/>
+  <arg name="world" default="$(find gazebo_aerial_manipulation_plugin)/worlds/quadrotor.world"/>
   <node pkg="gazebo_aerial_manipulation_plugin" type="gazebo" name="gazebo_node" args="$(arg world)" output="screen"/>
 </launch>
