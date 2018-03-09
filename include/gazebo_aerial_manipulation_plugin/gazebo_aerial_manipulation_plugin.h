@@ -30,6 +30,22 @@
 
 namespace gazebo
 {
+  /**
+   * @brief Store information about each joint
+   */
+  struct JointInfo{
+    common::PID pidcontroller;
+    double desired_target;// Servo goal
+    int control_type;//Position control 0; Velocity Control 1
+    physics::JointPtr joint_;
+    JointInfo(physics::JointPtr joint):desired_target(0), control_type(0), joint_(joint)
+    {
+    }
+  };
+  /**
+   * @brief Map between joint indices and servos attached
+   */
+  typedef std::vector<JointInfo> JointInfoVec;
 /// @addtogroup gazebo_dynamic_plugins Gazebo ROS Dynamic Plugins
 /// @{
 /** \defgroup GazeboAerialManipulation Plugin XML Reference and Example
@@ -67,11 +83,16 @@ class GazeboAerialManipulation : public ModelPlugin
   // Load rpy controller using provided params
   protected: void LoadRPYController(sdf::ElementPtr _sdf);
 
+  // Load joints and servos using provided params
+  protected: void LoadJointInfo(sdf::ElementPtr _sdf);
+
   // Documentation inherited
   protected: void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
 
   // Documentation inherited
   protected: virtual void UpdateChild();
+  ///\brief Control joints using servos
+  protected: virtual void UpdateJointEfforts()
 
   /// \brief call back when a rpy command is published
   /// \param[in] _msg The Incoming ROS message representing the new force to exert.
@@ -137,6 +158,7 @@ class GazeboAerialManipulation : public ModelPlugin
   /// \brief computes body torques based on rpy commands
   private: RpyController rpy_controller_;
   private: gazebo_aerial_manipulation_plugin::RPYPose current_pose_;
+  private: JointInfoVec joint_info_;
   private:
     void poseConnect() {
       pose_subscriber_count_.set(pose_subscriber_count_.get() + 1);

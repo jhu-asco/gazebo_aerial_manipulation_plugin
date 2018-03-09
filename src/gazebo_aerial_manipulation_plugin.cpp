@@ -73,6 +73,35 @@ void GazeboAerialManipulation::LoadRPYController(sdf::ElementPtr _sdf) {
   rpy_controller_ = RpyController(p_gains_, i_gains_, d_gains_, max_torque_);
 }
 
+void GazeboAerialManipulation::LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
+  gzdbg<<"Loading Joints..."<<endl;
+  if(_sdf->HasElement("joints"))
+  {
+    string joint_string = _sdf->GetElement("joints")->Get<string>();
+    ///\todo Remove later debug message
+    gzdbg<<joint_string<<std::endl;
+
+    std::stringstream joint_stream(joint_string);//Create a stream from the link strings
+    while(joint_stream.good())
+    {
+      string substr;
+      getline(joint_stream, substr, ';');//String delimited by semicolon
+      physics::JointPtr joint = boost::dynamic_pointer_cast<gazebo::physics::Joint>(_model->GetByName(substr));
+      if(!joint)
+      {
+        gzdbg<<"Failed to load: "<<substr<<std::endl;
+        continue;
+      } else if(joint->HasType(physics::Base::HINGE_JOINT)) {
+        gzdbg<< "Joint type is not revolute"<<std::endl;
+      }
+      joint_info_.emplace_back(joint);
+  }
+  else
+  {
+    gzdbg<<"Cannot Find joints to load"<<endl;
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Load the controller
 void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
@@ -104,6 +133,9 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
   }
   // Get rpy controller
   LoadRPYController(_sdf);
+  
+  // Get joint joint_info
+  LoadJointInfo(_model, _sdf);
 
   // Get Thrust gain
   if(_sdf->HasElement("thrust_gain")) {
@@ -233,6 +265,40 @@ void GazeboAerialManipulation::UpdateChild()
   math::Vector3 torque = current_pose.rot.RotateVector(body_torque);
   this->link_->AddForce(force);
   this->link_->AddTorque(torque);
+  updateJointEfforts();
+}
+
+void GazeboAerialManipulation::updateJointEfforts()
+{
+  //Control all the servos irrespective of whether they are commanded or not:
+  for (JointInfoVec::iterator it=joint_info_.begin(); it!=joint_info_.end(); ++it)
+  {
+    physics::JointPtr &joint = it->joint_;
+    double error = 0.0;
+    if(it->control_type == 0)
+    {
+      //Position Control:
+      error = std::remainder(joint->GetAngle(0).Radian(),2*M_PI) - it->desired_target;
+      error = (error > M_PI)?(error - 2*M_PI):(error < -M_PI)?(error + 2*M_PI):error;//Map error into (pi to pi) region
+    }
+    else if(it->control_type == 1)
+    {
+      //Velocity Control
+      error = joint->GetVelocity(0) - it->desired_target;
+      // cout<<"Error: "<<joint->GetVelocity(0)<<"\t"<<it->desired_target<<endl;
+    }
+    double effort = it->pidcontroller.Update(error, common::Time(physicsEngine->GetMaxStepSize()));
+    /*{
+      double debugerrors[3];
+      it->pidcontroller.GetErrors(debugerrors[0],debugerrors[1],debugerrors[2]);
+      gzdbg<<"Errors: "<<debugerrors[0]<<"\t"<<debugerrors[1]<<"\t"<<debugerrors[2]<<"\t"<<endl;
+      gzdbg<<"Effort: "<<effort<<endl;
+    }
+    */
+    joint->SetForce(0, effort);
+  }
+  // Add joint message if joint subscribers are not empty
+  // Fill joint position and joint velocity in JointState (sensor_msgs)
 }
 
 // Custom Callback Queue
@@ -247,7 +313,7 @@ void GazeboAerialManipulation::QueueThread()
     this->queue_.callAvailable(ros::WallDuration(timeout));
   }
 }
-
+// Add another joint publishing thread!!
 void GazeboAerialManipulation::publishPoseThread()
 {
   while (this->rosnode_->ok()) {
