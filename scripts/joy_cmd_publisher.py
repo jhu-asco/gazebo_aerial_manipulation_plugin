@@ -9,8 +9,8 @@ class JoyTransport:
   def __init__(self):
     self.rpyt_pub = rospy.Publisher('rpyt_command', RollPitchYawThrust, queue_size=1)
     self.joy_sub = rospy.Subscriber('joy', Joy, self.joyCallback, queue_size=1)
-    self.rpyt_min = [-np.pi/6, -np.pi/6, -np.pi, 50]
-    self.rpyt_max = [np.pi/6, np.pi/6, np.pi, 150]
+    self.rpyt_min = [-np.pi/6, -np.pi/6, -np.pi, 40]
+    self.rpyt_max = [np.pi/6, np.pi/6, np.pi, 140]
     self.joy_limits = [0.55, 0.55, 0.55, 0.65]
     self.yaw_cmd = 0.0
     self.dt = 1.0/30.0 # Frequency of joy publisher
