@@ -55,6 +55,7 @@ add_message_files(
   FILES
   RollPitchYawThrust.msg
   RPYPose.msg
+  JointCommand.msg
 )
 
 ## Generate services in the 'srv' folder

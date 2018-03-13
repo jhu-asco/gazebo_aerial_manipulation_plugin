@@ -27,6 +27,7 @@
 #include <gazebo_aerial_manipulation_plugin/rpycontroller.h>
 #include <gazebo_aerial_manipulation_plugin/atomic.h>
 #include <gazebo_aerial_manipulation_plugin/RPYPose.h>
+#include <gazebo_aerial_manipulation_plugin/JointCommand.h>
 
 
 namespace gazebo
@@ -36,15 +37,13 @@ namespace gazebo
    */
   struct JointInfo{
     common::PID pidcontroller;
-    double desired_target;// Servo goal
     int control_type;//Position control 0; Velocity Control 1
     physics::JointPtr joint_;
     std::string joint_name_;
-    JointInfo(physics::JointPtr joint, std::string joint_name, math::Vector3 pid_gains, double max_cmd):desired_target(0),
-        control_type(0),
+    JointInfo(physics::JointPtr joint, std::string joint_name, math::Vector3 pid_gains, double max_cmd, double max_integral):control_type(0),
         joint_(joint),
         joint_name_(joint_name),
-        pidcontroller(pid_gains.x, pid_gains.y, pid_gains.z, 0.1*max_cmd, -0.1*max_cmd, max_cmd, -max_cmd)
+        pidcontroller(pid_gains.x, pid_gains.y, pid_gains.z, max_integral, -max_integral, max_cmd, -max_cmd)
     {
     }
   };
@@ -107,6 +106,10 @@ protected: void LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf);
   /// \param[in] _msg The Incoming ROS message representing the new force to exert.
   private: void UpdateObjectForce(const gazebo_aerial_manipulation_plugin::RollPitchYawThrust::ConstPtr& _msg);
 
+  /// \brief call back when a joint command is published
+  /// \param[in] _msg The Incoming ROS message representing the desired joint angles
+  private: void UpdateJointCommand(const gazebo_aerial_manipulation_plugin::JointCommand::ConstPtr& _msg);
+
   /// \brief reset the model when this message is published
   private: void reset(const std_msgs::Empty::ConstPtr&);
 
@@ -135,6 +138,7 @@ protected: void LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf);
   /// \brief A pointer to the ROS node.  A node will be instantiated if it does not exist.
   private: ros::NodeHandle* rosnode_;
   private: ros::Subscriber rpyt_command_sub_;
+  private: ros::Subscriber joint_command_sub_;
   private: ros::Subscriber reset_sub_;
   private: ros::Subscriber model_pose_sub_;
 
@@ -154,6 +158,7 @@ protected: void LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf);
   private: boost::thread publish_joint_thread_;
   /// \brief Container for the wrench force that this plugin exerts on the body.
   private: Atomic<gazebo_aerial_manipulation_plugin::RollPitchYawThrust> rpyt_msg_;
+  private: Atomic<gazebo_aerial_manipulation_plugin::JointCommand> joint_command_;
 
   // Pointer to the update event connection
   private: event::ConnectionPtr update_connection_;
