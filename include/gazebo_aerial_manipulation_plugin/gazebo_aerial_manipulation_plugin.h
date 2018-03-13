@@ -141,9 +141,6 @@ protected: void LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf);
   private: ros::Publisher pose_pub_;
   private: ros::Publisher joint_state_pub_;
 
-  /// \brief The Link this plugin is attached to, and will exert forces on.
-  private: std::string link_name_;
-
   /// \brief for setting ROS name space
   private: std::string robot_namespace_;
 

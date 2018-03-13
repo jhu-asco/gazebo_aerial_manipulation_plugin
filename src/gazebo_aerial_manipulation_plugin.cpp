@@ -124,13 +124,8 @@ void GazeboAerialManipulation::LoadJointInfo(physics::ModelPtr _model, sdf::Elem
       default_target = joint_elem->GetElement("default_target")->Get<double>();
       std::cout<<"Setting default target: "<<default_target<<std::endl;
     }
-    std::cout<<"Joint limits: "<< joint->GetLowStop(0).Radian()<<", "<<joint->GetHighStop(0).Radian()<<std::endl;
     joint_info_.emplace_back(joint, joint_name, pid_gains_joint, max_torque_joint);
     joint_info_.back().desired_target = default_target;
-    //auto pid_controller = joint_info_.back().pidcontroller;
-    //pid_controller.SetCmd(default_angle);
-    //pid_controller.SetCmdMin(joint->GetLowStop(0).Radian());
-    //pid_controller.SetCmdMax(joint->GetHighStop(0).Radian());
     joint_state_.name.push_back(joint_name);
     joint_state_.position.push_back(0);
     joint_state_.velocity.push_back(0);
@@ -156,20 +151,21 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
 
   if (!_sdf->HasElement("bodyName"))
   {
-    ROS_FATAL_NAMED("force", "force plugin missing <bodyName>, cannot proceed");
-    return;
+    ROS_INFO("Cannot find body name, will not perform rpyt control");
   }
-  else
-    this->link_name_ = _sdf->GetElement("bodyName")->Get<std::string>();
+  else {
+    std::string link_name = _sdf->GetElement("bodyName")->Get<std::string>();
 
-  this->link_ = _model->GetLink(this->link_name_);
-  if (!this->link_)
-  {
-    ROS_FATAL_NAMED("force", "aerial_manipulation_plugin plugin error: link named: %s does not exist\n",this->link_name_.c_str());
-    return;
+    this->link_ = _model->GetLink(link_name);
+
+    if (!this->link_)
+    {
+      ROS_FATAL_NAMED("force", "aerial_manipulation_plugin plugin error: link named: %s does not exist\n", link_name.c_str());
+      return;
+    }
+    // Get rpy controller
+    LoadRPYController(_sdf);
   }
-  // Get rpy controller
-  LoadRPYController(_sdf);
   
   // Load joint_info if provided
   if(_sdf->HasElement("joints")) {
@@ -302,7 +298,9 @@ void GazeboAerialManipulation::setModelPose(const geometry_msgs::Pose::ConstPtr&
 // Update the controller
 void GazeboAerialManipulation::UpdateChild()
 {
-  UpdateBaseLink();
+  if (link_) {
+    UpdateBaseLink();
+  }
   UpdateJointEfforts();
   previous_sim_time_ = world_->GetSimTime();
 }
@@ -342,12 +340,12 @@ void GazeboAerialManipulation::UpdateJointEfforts()
     JointInfo &joint_info = joint_info_.at(i);
     physics::JointPtr &joint = joint_info.joint_;
     double error = 0.0;
+    double j_angle = std::remainder(joint->GetAngle(0).Radian(),2*M_PI);
     if(joint_info.control_type == 0)
     {
       //Position Control:
-      //error = std::remainder(joint->GetAngle(0).Radian(),2*M_PI) - joint_info.desired_target;
-      error = joint_info.desired_target - std::remainder(joint->GetAngle(0).Radian(),2*M_PI);
-      //error = (error > M_PI)?(error - 2*M_PI):(error < -M_PI)?(error + 2*M_PI):error;//Map error into (pi to pi) region
+      error = j_angle - joint_info.desired_target;
+      error = (error > M_PI)?(error - 2*M_PI):(error < -M_PI)?(error + 2*M_PI):error;//Map error into (pi to pi) region
     }
     else if(joint_info.control_type == 1)
     {
@@ -359,7 +357,7 @@ void GazeboAerialManipulation::UpdateJointEfforts()
     joint->SetForce(0, effort);
     // Fill joint state info
     joint_state_.header.stamp = ros::Time::now();
-    joint_state_.position.at(i) = joint->GetAngle(0).Radian();
+    joint_state_.position.at(i) = j_angle;
     joint_state_.velocity.at(i) = joint->GetVelocity(0);
     joint_state_.effort.at(i) = error;
   }
