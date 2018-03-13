@@ -40,7 +40,11 @@ namespace gazebo
     int control_type;//Position control 0; Velocity Control 1
     physics::JointPtr joint_;
     std::string joint_name_;
-    JointInfo(physics::JointPtr joint, std::string joint_name):desired_target(0), control_type(0), joint_(joint), joint_name_(joint_name)
+    JointInfo(physics::JointPtr joint, std::string joint_name, math::Vector3 pid_gains, double max_cmd):desired_target(0),
+        control_type(0),
+        joint_(joint),
+        joint_name_(joint_name),
+        pidcontroller(pid_gains.x, pid_gains.y, pid_gains.z, 0.1*max_cmd, -0.1*max_cmd, max_cmd, -max_cmd)
     {
     }
   };

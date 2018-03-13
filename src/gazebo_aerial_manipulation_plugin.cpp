@@ -77,28 +77,65 @@ void GazeboAerialManipulation::LoadRPYController(sdf::ElementPtr _sdf) {
 
 void GazeboAerialManipulation::LoadJointInfo(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
   ///\todo Update sdf to include joint pid gains
-  gzdbg<<"Loading Joints..."<<std::endl;
-  std::string joint_string = _sdf->GetElement("joints")->Get<std::string>();
-  ///\todo Remove later debug message
-  gzdbg<<joint_string<<std::endl;
+  std::cout<<"Loading Joints..."<<std::endl;
+  sdf::ElementPtr joint_elem = _sdf->GetFirstElement();
 
-  std::stringstream joint_stream(joint_string);//Create a stream from the link strings
-  while(joint_stream.good())
+  while(joint_elem)
   {
+    physics::JointPtr joint;
     std::string joint_name;
-    getline(joint_stream, joint_name, ';');//String delimited by semicolon
-    physics::JointPtr joint = boost::dynamic_pointer_cast<gazebo::physics::Joint>(_model->GetByName(joint_name));
+    double default_target = 0.0;
+    double max_torque_joint = 10.0;
+    math::Vector3 pid_gains_joint;
+    if(joint_elem->HasAttribute("name")) {
+      joint_name = joint_elem->Get<std::string>("name");
+      joint = boost::dynamic_pointer_cast<gazebo::physics::Joint>(_model->GetByName(joint_name));
+    } else {
+      std::cout<<"Cannot find name in joint element: "<<joint_elem->GetName()<<std::endl;
+      joint_elem = joint_elem->GetNextElement();
+      continue;
+    }
     if(!joint)
     {
-      gzdbg<<"Failed to load: "<<joint_name<<std::endl;
+      std::cout<<"Failed to load: "<<joint_name<<std::endl;
+      joint_elem = joint_elem->GetNextElement();
       continue;
-    } else if(joint->HasType(physics::Base::HINGE_JOINT)) {
-      gzdbg<< "Joint type is not revolute"<<std::endl;
+    } else if(!joint->HasType(physics::Base::HINGE_JOINT)) {
+      std::cout<< "Joint type is not revolute"<<std::endl;
+      joint_elem = joint_elem->GetNextElement();
+      continue;
+    } else {
+      std::cout<<"Found Hinge joint: "<<joint_name<<std::endl;
     }
-    joint_info_.emplace_back(joint, joint_name);
+    if(joint_elem->HasElement("pid_gains")) {
+      auto pid_gains = joint_elem->GetElement("pid_gains");
+      pid_gains_joint.x = pid_gains->Get<double>("p");
+      pid_gains_joint.y = pid_gains->Get<double>("i");
+      pid_gains_joint.z = pid_gains->Get<double>("d");
+    } else {
+      std::cout<< "Cannot find pid gains for the joint!"<<std::endl;
+      pid_gains_joint.x = pid_gains_joint.y = pid_gains_joint.z = 0.1;
+    }
+    if(joint_elem->HasElement("max_torque")) {
+      max_torque_joint = joint_elem->GetElement("max_torque")->Get<double>();
+      std::cout<<"Setting max torque: "<<max_torque_joint<<std::endl;
+    }
+    if(joint_elem->HasElement("default_target")) {
+      default_target = joint_elem->GetElement("default_target")->Get<double>();
+      std::cout<<"Setting default target: "<<default_target<<std::endl;
+    }
+    std::cout<<"Joint limits: "<< joint->GetLowStop(0).Radian()<<", "<<joint->GetHighStop(0).Radian()<<std::endl;
+    joint_info_.emplace_back(joint, joint_name, pid_gains_joint, max_torque_joint);
+    joint_info_.back().desired_target = default_target;
+    //auto pid_controller = joint_info_.back().pidcontroller;
+    //pid_controller.SetCmd(default_angle);
+    //pid_controller.SetCmdMin(joint->GetLowStop(0).Radian());
+    //pid_controller.SetCmdMax(joint->GetHighStop(0).Radian());
     joint_state_.name.push_back(joint_name);
     joint_state_.position.push_back(0);
     joint_state_.velocity.push_back(0);
+    joint_state_.effort.push_back(0);
+    joint_elem = joint_elem->GetNextElement();
   }
 }
 
@@ -136,9 +173,9 @@ void GazeboAerialManipulation::Load(physics::ModelPtr _model, sdf::ElementPtr _s
   
   // Load joint_info if provided
   if(_sdf->HasElement("joints")) {
-    LoadJointInfo(_model, _sdf);
+    LoadJointInfo(_model, _sdf->GetElement("joints"));
   } else {
-    gzdbg<<"Cannot Find joints to load"<<std::endl;
+    std::cout<<"Cannot Find joints to load"<<std::endl;
   }
 
   // Get Thrust gain
@@ -308,8 +345,9 @@ void GazeboAerialManipulation::UpdateJointEfforts()
     if(joint_info.control_type == 0)
     {
       //Position Control:
-      error = std::remainder(joint->GetAngle(0).Radian(),2*M_PI) - joint_info.desired_target;
-      error = (error > M_PI)?(error - 2*M_PI):(error < -M_PI)?(error + 2*M_PI):error;//Map error into (pi to pi) region
+      //error = std::remainder(joint->GetAngle(0).Radian(),2*M_PI) - joint_info.desired_target;
+      error = joint_info.desired_target - std::remainder(joint->GetAngle(0).Radian(),2*M_PI);
+      //error = (error > M_PI)?(error - 2*M_PI):(error < -M_PI)?(error + 2*M_PI):error;//Map error into (pi to pi) region
     }
     else if(joint_info.control_type == 1)
     {
@@ -323,6 +361,7 @@ void GazeboAerialManipulation::UpdateJointEfforts()
     joint_state_.header.stamp = ros::Time::now();
     joint_state_.position.at(i) = joint->GetAngle(0).Radian();
     joint_state_.velocity.at(i) = joint->GetVelocity(0);
+    joint_state_.effort.at(i) = error;
   }
 }
 
