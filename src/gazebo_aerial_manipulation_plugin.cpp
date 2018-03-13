@@ -348,8 +348,10 @@ void GazeboAerialManipulation::UpdateBaseLink() {
   math::Vector3 body_torque = rpy_controller_.update(rpy_command, current_pose.rot, omega_b, world_->GetSimTime());
   math::Vector3 force = current_pose.rot.RotateVector(body_force);
   math::Vector3 torque = current_pose.rot.RotateVector(body_torque);
-  link_->AddForce(force);
-  link_->AddTorque(torque);
+  //link_->AddForce(force);
+  //link_->AddTorque(torque);
+  link_->SetForce(force);
+  link_->SetTorque(torque);
 }
 
 void GazeboAerialManipulation::UpdateJointEfforts()
@@ -384,7 +386,7 @@ void GazeboAerialManipulation::UpdateJointEfforts()
     joint_state_.header.stamp = ros::Time::now();
     joint_state_.position.at(i) = j_angle;
     joint_state_.velocity.at(i) = joint->GetVelocity(0);
-    joint_state_.effort.at(i) = error;
+    joint_state_.effort.at(i) = effort;
   }
 }
 
