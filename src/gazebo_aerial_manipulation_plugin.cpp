@@ -87,6 +87,7 @@ void GazeboAerialManipulation::LoadJointInfo(physics::ModelPtr _model, sdf::Elem
     double default_target = 0.0;
     double max_torque_joint = 10.0;
     double max_integral_joint = 1.0;
+    double max_velocity_joint = 1.0;
     math::Vector3 pid_gains_joint;
     if(joint_elem->HasAttribute("name")) {
       joint_name = joint_elem->Get<std::string>("name");
@@ -121,6 +122,10 @@ void GazeboAerialManipulation::LoadJointInfo(physics::ModelPtr _model, sdf::Elem
       max_integral_joint = joint_elem->GetElement("integral_max")->Get<double>();
       std::cout<<"Setting max integral value: "<<max_integral_joint<<std::endl;
     }
+    if(joint_elem->HasElement("max_velocity")) {
+      max_velocity_joint = joint_elem->GetElement("max_velocity")->Get<double>();
+      std::cout<<"Setting max velocity for joint: "<<max_velocity_joint<<std::endl;
+    }
     if(joint_elem->HasElement("max_torque")) {
       max_torque_joint = joint_elem->GetElement("max_torque")->Get<double>();
       std::cout<<"Setting max torque: "<<max_torque_joint<<std::endl;
@@ -129,7 +134,7 @@ void GazeboAerialManipulation::LoadJointInfo(physics::ModelPtr _model, sdf::Elem
       default_target = joint_elem->GetElement("default_target")->Get<double>();
       std::cout<<"Setting default target: "<<default_target<<std::endl;
     }
-    joint_info_.emplace_back(joint, joint_name, pid_gains_joint, max_torque_joint, max_integral_joint);
+    joint_info_.emplace_back(joint, joint_name, pid_gains_joint, max_torque_joint, max_velocity_joint, max_integral_joint);
     joint_state_.name.push_back(joint_name);
     joint_state_.position.push_back(0);
     joint_state_.velocity.push_back(0);
@@ -357,36 +362,29 @@ void GazeboAerialManipulation::UpdateBaseLink() {
 void GazeboAerialManipulation::UpdateJointEfforts()
 {
   auto joint_command = joint_command_.get();
-  common::Time joint_pid_dt(0, 0);
-  if(previous_sim_time_.Double() > 0.0) {
-    joint_pid_dt = world_->GetSimTime() - previous_sim_time_;
-  }
+  auto current_time = world_->GetSimTime();
   //Control all the servos irrespective of whether they are commanded or not:
   for(int i = 0; i < joint_info_.size(); ++i)
   {
     JointInfo &joint_info = joint_info_.at(i);
     physics::JointPtr &joint = joint_info.joint_;
-    double error = 0.0;
     double j_angle = std::remainder(joint->GetAngle(0).Radian(),2*M_PI);
-    if(joint_info.control_type == 0)
-    {
-      //Position Control:
-      error = j_angle - joint_command.desired_joint_angles.at(i);
-      error = (error > M_PI)?(error - 2*M_PI):(error < -M_PI)?(error + 2*M_PI):error;//Map error into (pi to pi) region
+    double j_desired = joint_command.desired_joint_angles.at(i);
+    double j_velocity = joint->GetVelocity(0);
+    //Position Control:
+    double error = j_angle - j_desired;
+    if(error > M_PI) {
+      j_angle = j_angle - 2*M_PI;
+    } else if(error < -M_PI) {
+      j_angle = j_angle + 2*M_PI;
     }
-    else if(joint_info.control_type == 1)
-    {
-      //Velocity Control
-      error = joint->GetVelocity(0) - joint_command.desired_joint_angles.at(i);
-      // cout<<"Error: "<<joint->GetVelocity(0)<<"\t"<<it->desired_target<<endl;
-    }
-    double effort = joint_info.pidcontroller.Update(error, joint_pid_dt);
-    joint->SetForce(0, effort);
+    double j_effort = joint_info.pidcontroller.update(j_desired, j_angle, j_velocity, current_time);
+    joint->SetForce(0, j_effort);
     // Fill joint state info
     joint_state_.header.stamp = ros::Time::now();
     joint_state_.position.at(i) = j_angle;
-    joint_state_.velocity.at(i) = joint->GetVelocity(0);
-    joint_state_.effort.at(i) = effort;
+    joint_state_.velocity.at(i) = j_velocity;
+    joint_state_.effort.at(i) = j_effort;
   }
 }
 

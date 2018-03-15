@@ -25,6 +25,7 @@
 
 #include <gazebo_aerial_manipulation_plugin/RollPitchYawThrust.h>
 #include <gazebo_aerial_manipulation_plugin/rpycontroller.h>
+#include <gazebo_aerial_manipulation_plugin/cascaded_pid_controller.h>
 #include <gazebo_aerial_manipulation_plugin/atomic.h>
 #include <gazebo_aerial_manipulation_plugin/RPYPose.h>
 #include <gazebo_aerial_manipulation_plugin/JointCommand.h>
@@ -36,14 +37,12 @@ namespace gazebo
    * @brief Store information about each joint
    */
   struct JointInfo{
-    common::PID pidcontroller;
-    int control_type;//Position control 0; Velocity Control 1
+    CascadedPIDController pidcontroller;
     physics::JointPtr joint_;
     std::string joint_name_;
-    JointInfo(physics::JointPtr joint, std::string joint_name, math::Vector3 pid_gains, double max_cmd, double max_integral):control_type(0),
-        joint_(joint),
+    JointInfo(physics::JointPtr joint, std::string joint_name, math::Vector3 pid_gains, double max_command, double max_velocity, double max_integral): joint_(joint),
         joint_name_(joint_name),
-        pidcontroller(pid_gains.x, pid_gains.y, pid_gains.z, max_integral, -max_integral, max_cmd, -max_cmd)
+        pidcontroller(pid_gains.x, pid_gains.y, pid_gains.z, max_command, max_velocity, max_integral)
     {
     }
   };

@@ -131,6 +131,7 @@ link_directories(${catkin_LIBRARY_DIRS})
 add_library(${PROJECT_NAME}
    src/gazebo_aerial_manipulation_plugin.cpp
    src/rpycontroller.cpp
+   src/cascaded_pid_controller.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -202,6 +203,10 @@ target_link_libraries(${PROJECT_NAME}
 catkin_add_gtest(${PROJECT_NAME}-rpy-controller-test tests/rpy_controller_tests.cpp)
 if(TARGET ${PROJECT_NAME}-rpy-controller-test)
   target_link_libraries(${PROJECT_NAME}-rpy-controller-test ${PROJECT_NAME})
+endif()
+catkin_add_gtest(${PROJECT_NAME}-cascaded-pid-controller-test tests/cascaded_pid_controller_tests.cpp)
+if(TARGET ${PROJECT_NAME}-cascaded-pid-controller-test)
+  target_link_libraries(${PROJECT_NAME}-cascaded-pid-controller-test ${PROJECT_NAME})
 endif()
 
 ## Add folders to be run by python nosetests
