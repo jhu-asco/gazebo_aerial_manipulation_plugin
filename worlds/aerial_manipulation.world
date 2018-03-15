@@ -44,6 +44,7 @@
             <default_target>0.0</default_target>
           </joint>
         </joints>
+        <!-- Max torque for quad rpy control-->
         <max_torque>2000.0</max_torque>
         <thrust_gain>0.16</thrust_gain>
         <pose_pub_freq>20</pose_pub_freq>

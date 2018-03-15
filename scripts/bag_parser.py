@@ -9,7 +9,6 @@ parsing using tensorflow.
 """
 
 import os
-import sys
 import numpy as np
 import argparse
 import rosbag
@@ -17,25 +16,20 @@ import matplotlib.pyplot as plt
 # %%
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert bag file')
-    parser.add_argument('--log_folder', type=str)
     parser.add_argument('--bag_name', type=str)
     parser.add_argument('--max_T', type=float, default=100)
     parser.add_argument('--no-plot-data', dest='plot_data', action='store_false', default=True)
     parser.add_argument('--write-data', dest='write_data', action='store_true', default=False)
     args = parser.parse_args()
-    if not os.path.isdir(args.log_folder):
-        print "Log folder not found: ", args.log_folder
-        sys.exit(-1)
-    bag_file = os.path.join(args.log_folder, args.bag_name)
-    out_file = os.path.splitext(bag_file)[0]
-    bag = rosbag.Bag(bag_file)
+    out_file = os.path.splitext(args.bag_name)[0]
+    bag = rosbag.Bag(args.bag_name)
     t0 = None
     tEnd = None
     z_base = 0.19
     pose_data_list = []
     message_streaming_started = False
     max_tdiff = args.max_T
-    for _,msg,t in bag.read_messages(['/base_pose']):
+    for _,msg,_ in bag.read_messages(['/base_pose']):
         if msg.position.z - z_base > 0:
             if t0 is None:
                 t0 = msg.header.stamp
@@ -54,17 +48,40 @@ if __name__ == '__main__':
                 message_streaming_started = True
     pose_data = np.vstack(pose_data_list)
     rpyt_data_list = []
-    for _,msg, t in bag.read_messages(['/rpyt_command']):
-        tdiff = (t - t0).to_sec()
+    for _,msg, t1 in bag.read_messages(['/rpyt_command']):
+        tdiff = (msg.header.stamp - t0).to_sec()
         if tdiff >= 0:
-            if (t < tEnd):
+            if (msg.header.stamp < tEnd):
                 rpyt_data_list.append(np.array([tdiff, msg.roll, msg.pitch,
                                                 msg.yaw, msg.thrust]))
             else:
                 break
     rpyt_data = np.vstack(rpyt_data_list)
+    joint_state_list = []
+    for _,msg, _ in bag.read_messages(['/joint_state']):
+        tdiff = (msg.header.stamp - t0).to_sec()
+        if tdiff >= 0:
+            if (msg.header.stamp < tEnd):
+                joint_state_list.append(np.hstack([tdiff, msg.position, msg.velocity, msg.effort]))
+            else:
+                break
+    if joint_state_list:
+      joint_command_list = []
+      for _, msg, _ in bag.read_messages(['/joint_command']):
+          tdiff = (msg.header.stamp - t0).to_sec()
+          if tdiff >= 0:
+              if (msg.header.stamp < tEnd):
+                  joint_command_list.append(np.hstack([tdiff, msg.desired_joint_angles]))
+              else:
+                  break
+      joint_state_data = np.vstack(joint_state_list)
+      joint_command_data = np.vstack(joint_command_list)
+    else:
+      joint_command_data = None
+      joint_state_data = None
+      joint_command_data = np.vstack(joint_command_list)
     if args.write_data:
-        np.savez(out_file, control_data=rpyt_data, sensor_data=pose_data)
+        np.savez(out_file, control_data=[rpyt_data, joint_command_data], sensor_data=[pose_data, joint_state_data])
     if args.plot_data:
         # %% Plot
         plt.figure(1)
@@ -83,4 +100,19 @@ if __name__ == '__main__':
             plt.plot(pose_data[:,0], pose_data[:,i+1])
             plt.ylabel(axis_name[i] + ' (m)')
         plt.xlabel('Time(sec)')
+        # Plot joint state and commands if available
+        if joint_state_list:
+          plt.figure(3)
+          axis_name = ['angle_0', 'angle_1', 'omega_0', 'omega_1']
+          for i in range(4):
+            plt.subplot(2,2, i+1)
+            plt.plot(joint_state_data[:, 0], joint_state_data[:, i+1])
+            if i < 2:
+              plt.plot(joint_command_data[:, 0], joint_command_data[:, i+1])
+              plt.legend(('angle', 'desired_angle'))
+              plt.ylabel(axis_name[i] + ' (rad)')
+            plt.ylabel(axis_name[i])
+            if i >= 2:
+              plt.xlabel('Time (seconds)')
+              plt.ylabel(axis_name[i] + ' (rad/s)')
         plt.show()
