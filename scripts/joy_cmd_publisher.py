@@ -23,6 +23,7 @@ class JoyTransport:
     self.j_nu = np.array([0.1, 0.1])
     self.j_t0 = rospy.get_rostime()
     self.joint_command = JointCommand()
+    self.j_prev_time = rospy.get_rostime()
     # Angles when at rest
     self.j_rest = [-0.1, 0.0]
     # Copy j_rest to commanded angles
@@ -67,7 +68,10 @@ class JoyTransport:
       self.j_t0 = rospy.get_rostime()
       self.joint_command.header.stamp = rospy.get_rostime()
       self.joint_command.desired_joint_angles = self.j_rest
-    self.joint_pub.publish(self.joint_command)
+    # Publish at 20Hz
+    if (rospy.get_rostime() - self.j_prev_time).to_sec() > 0.05:
+      self.j_prev_time = rospy.get_rostime()
+      self.joint_pub.publish(self.joint_command )
 
 if __name__ == '__main__':
   rospy.init_node('joy_transporter')

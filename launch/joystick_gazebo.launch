@@ -11,5 +11,5 @@
     <param name="deadzone" type="double" value="0.01"/>
     <param name="autorepeat_rate" type="double" value="50"/>
   </node>
-  <node pkg="rosbag" type="record" name="rosbag" args="-o $(arg log)/joy_quad /base_pose /rpyt_command /joint_command /joint_state" if="$(arg record)"/>
+  <node pkg="rosbag" type="record" name="rosbag" args="-o $(arg log)/joy_airm /base_pose /rpyt_command /joint_command /joint_state" if="$(arg record)"/>
 </launch>
