@@ -18,9 +18,9 @@ class JoyTransport:
     #j_amp_scale = 0.5
     j_amp_scale = 1.0
     self.j_amp = j_amp_scale*np.array([0.75, 2.2])
-    self.j_max_gain = 20
+    self.j_max_gain = 5
     self.j_gain = 1
-    self.j_nu = np.array([0.1, 0.1])
+    self.j_nu = np.array([0.05, 0.05])
     self.j_t0 = rospy.get_rostime()
     self.joint_command = JointCommand()
     self.j_prev_time = rospy.get_rostime()
@@ -58,7 +58,7 @@ class JoyTransport:
     if joy_msg.axes[3] > 0:
       self.joint_command.header.stamp = rospy.get_rostime()
       # Exp filter
-      self.j_gain = (1-0.0001)*self.j_gain + 0.0001*self.map(joy_msg.axes[4],-0.9, 0.9, 0, self.j_max_gain)
+      self.j_gain = (1-0.0001)*self.j_gain + 0.0001*self.map(joy_msg.axes[4],-0.9, 0.9, 1.0, self.j_max_gain)
       omega = 2*np.pi*self.j_nu*self.j_gain
       off = self.j_offset
       amp = self.j_amp

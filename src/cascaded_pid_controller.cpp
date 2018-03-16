@@ -27,7 +27,7 @@ double CascadedPIDController::update(double pd, double p, double v, common::Time
     // Compute v_error
     double v_error = v - vd;
     // Integrate v_error
-    double i_error = i_error_.get() + i_gain_*v_error*dt.Double();
+    double i_error = i_error_.get() - i_gain_*v_error*dt.Double();
     i_error = clamp(i_error, max_i_error_, -max_i_error_);
     i_error_.set(i_error);
     // Compute and return force

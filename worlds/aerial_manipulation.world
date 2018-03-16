@@ -27,25 +27,27 @@
       <plugin name="aerial_manipulation" filename="libgazebo_aerial_manipulation_plugin.so">
         <bodyName>airbot_with_plugin::Airbotwith2dofarm::baselink</bodyName>
         <topicName>base_force</topicName>
-        <roll_pid_gains p="10.0" i="0.0" d="5.0"/>
-        <pitch_pid_gains p="10.0" i="0.0" d="5.0"/>
-        <yaw_pid_gains p="10.0" i="0.0" d="5.0"/>
+        <roll_pid_gains p="30.0" i="0.01" d="1.0"/>
+        <pitch_pid_gains p="30.0" i="0.01" d="1.0"/>
+        <yaw_pid_gains p="30.0" i="0.01" d="1.0"/>
         <joints>
           <joint name="airbot_with_plugin::Airbotwith2dofarm::airbase_joint_link1">
-            <pid_gains p="1.5" i="0.8" d="2.0"/>
+            <pid_gains p="2.0" i="0.5" d="2.0"/>
             <max_torque>20.0</max_torque>
             <max_integral>1.0</max_integral>
+            <max_velocity>2.0</max_velocity>
             <default_target>-0.1</default_target>
           </joint>
           <joint name="airbot_with_plugin::Airbotwith2dofarm::link1_joint_link2">
-            <pid_gains p="1.5" i="0.8" d="2.0"/>
+            <pid_gains p="2.0" i="0.5" d="2.0"/>
             <max_torque>20.0</max_torque>
             <max_integral>1.0</max_integral>
+            <max_velocity>2.0</max_velocity>
             <default_target>0.0</default_target>
           </joint>
         </joints>
         <!-- Max torque for quad rpy control-->
-        <max_torque>2000.0</max_torque>
+        <max_torque>10.0</max_torque>
         <thrust_gain>0.16</thrust_gain>
         <pose_pub_freq>20</pose_pub_freq>
       </plugin>
