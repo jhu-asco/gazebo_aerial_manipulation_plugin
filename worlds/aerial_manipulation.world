@@ -33,21 +33,21 @@
         <joints>
           <joint name="airbot_with_plugin::Airbotwith2dofarm::airbase_joint_link1">
             <pid_gains p="2.0" i="0.5" d="2.0"/>
-            <max_torque>20.0</max_torque>
+            <max_torque>2.0</max_torque>
             <max_integral>1.0</max_integral>
             <max_velocity>2.0</max_velocity>
             <default_target>-0.1</default_target>
           </joint>
           <joint name="airbot_with_plugin::Airbotwith2dofarm::link1_joint_link2">
             <pid_gains p="2.0" i="0.5" d="2.0"/>
-            <max_torque>20.0</max_torque>
+            <max_torque>2.0</max_torque>
             <max_integral>1.0</max_integral>
             <max_velocity>2.0</max_velocity>
             <default_target>0.0</default_target>
           </joint>
         </joints>
         <!-- Max torque for quad rpy control-->
-        <max_torque>10.0</max_torque>
+        <max_torque>4.0</max_torque>
         <thrust_gain>0.16</thrust_gain>
         <pose_pub_freq>20</pose_pub_freq>
       </plugin>

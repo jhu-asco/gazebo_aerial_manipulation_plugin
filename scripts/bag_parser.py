@@ -17,9 +17,9 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert bag file')
     parser.add_argument('--bag_name', type=str)
-    parser.add_argument('--max_T', type=float, default=100)
-    parser.add_argument('--no-plot-data', dest='plot_data', action='store_false', default=True)
-    parser.add_argument('--write-data', dest='write_data', action='store_true', default=False)
+    parser.add_argument('--max_t', type=float, default=100)
+    parser.add_argument('--no_plot_data', dest='plot_data', action='store_false', default=True)
+    parser.add_argument('--write_data', dest='write_data', action='store_true', default=False)
     args = parser.parse_args()
     out_file = os.path.splitext(args.bag_name)[0]
     bag = rosbag.Bag(args.bag_name)
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     z_base = 0.19
     pose_data_list = []
     message_streaming_started = False
-    max_tdiff = args.max_T
+    max_tdiff = args.max_t
     for _,msg,_ in bag.read_messages(['/base_pose']):
         if msg.position.z - z_base > 0:
             if t0 is None:
